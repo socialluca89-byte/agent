@@ -1,0 +1,279 @@
+{% extends "base.html" %}
+{% block title %}Offerte di lavoro{% endblock %}
+
+{% block head %}
+<style>
+  /* ── Stat bar ── */
+  .stat-bar {
+    display: flex;
+    gap: 1rem;
+    flex-wrap: wrap;
+    margin-bottom: 1.25rem;
+  }
+  .stat {
+    background: var(--surface);
+    border: 1px solid var(--border);
+    border-radius: var(--radius);
+    padding: .7rem 1.2rem;
+    display: flex;
+    align-items: center;
+    gap: .6rem;
+  }
+  .stat-num { font-size: 1.4rem; font-weight: 700; }
+  .stat-label { font-size: .75rem; color: var(--text-muted); text-transform: uppercase; letter-spacing: .05em; }
+
+  /* ── Filter bar ── */
+  .filter-bar {
+    display: flex;
+    gap: .75rem;
+    flex-wrap: wrap;
+    margin-bottom: 1.25rem;
+    align-items: flex-end;
+  }
+  .filter-bar .f { min-width: 160px; flex: 1; }
+  .filter-bar select { width: 100%; }
+
+  /* ── Job list ── */
+  .job-list { display: flex; flex-direction: column; gap: .75rem; }
+
+  .job-card {
+    background: var(--surface);
+    border: 1px solid var(--border);
+    border-radius: var(--radius);
+    padding: 1rem 1.25rem;
+    display: grid;
+    grid-template-columns: 1fr auto;
+    gap: .5rem 1rem;
+    transition: border-color .15s;
+  }
+  .job-card:hover { border-color: var(--accent); }
+  .job-card.status-approvato { border-left: 3px solid var(--green); }
+  .job-card.status-rifiutato { border-left: 3px solid var(--red); opacity: .6; }
+  .job-card.status-in_attesa { border-left: 3px solid var(--border); }
+
+  .job-title {
+    font-weight: 700;
+    font-size: 1rem;
+    color: var(--text);
+    text-decoration: none;
+    line-height: 1.3;
+  }
+  .job-title:hover { color: var(--accent); }
+
+  .job-meta {
+    display: flex;
+    flex-wrap: wrap;
+    gap: .4rem;
+    margin-top: .35rem;
+    align-items: center;
+  }
+  .meta-item {
+    font-size: .78rem;
+    color: var(--text-muted);
+    display: flex;
+    align-items: center;
+    gap: .25rem;
+  }
+
+  .job-actions {
+    display: flex;
+    flex-direction: column;
+    align-items: flex-end;
+    gap: .5rem;
+    justify-content: center;
+  }
+
+  .quick-btns { display: flex; gap: .4rem; }
+  .icon-btn {
+    width: 34px; height: 34px;
+    border-radius: 8px;
+    border: 1px solid var(--border);
+    background: var(--surface2);
+    color: var(--text);
+    cursor: pointer;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-size: 1rem;
+    transition: background .15s, border-color .15s;
+  }
+  .icon-btn:hover { background: var(--surface); border-color: var(--accent); }
+  .icon-btn.approve:hover { border-color: var(--green); color: var(--green); }
+  .icon-btn.reject:hover  { border-color: var(--red);   color: var(--red); }
+
+  .empty {
+    text-align: center;
+    padding: 4rem 1rem;
+    color: var(--text-muted);
+  }
+  .empty h2 { font-size: 1.5rem; margin-bottom: .5rem; }
+</style>
+{% endblock %}
+
+{% block content %}
+<div class="container">
+
+  <!-- Stat bar -->
+  <div class="stat-bar">
+    <div class="stat">
+      <div>
+        <div class="stat-num">{{ stats.total }}</div>
+        <div class="stat-label">Totale offerte</div>
+      </div>
+    </div>
+    <div class="stat">
+      <div>
+        <div class="stat-num" style="color:var(--text-muted)">{{ stats.in_attesa }}</div>
+        <div class="stat-label">In attesa</div>
+      </div>
+    </div>
+    <div class="stat">
+      <div>
+        <div class="stat-num" style="color:var(--green)">{{ stats.approvati }}</div>
+        <div class="stat-label">Approvate</div>
+      </div>
+    </div>
+    <div class="stat">
+      <div>
+        <div class="stat-num" style="color:var(--red)">{{ stats.rifiutati }}</div>
+        <div class="stat-label">Rifiutate</div>
+      </div>
+    </div>
+  </div>
+
+  <!-- Filter bar -->
+  <form method="get" action="/">
+    <div class="filter-bar">
+      <div class="f">
+        <label>Categoria</label>
+        <select name="categoria" onchange="this.form.submit()">
+          <option value="">Tutte le categorie</option>
+          {% for c in categories %}
+          <option value="{{ c }}" {% if c == categoria %}selected{% endif %}>
+            {% if c == 'docente_formatore' %}Docente / Formatore
+            {% elif c == 'social_media' %}Social Media Manager
+            {% elif c == 'web_ecommerce' %}Web / E-commerce
+            {% else %}{{ c }}{% endif %}
+          </option>
+          {% endfor %}
+        </select>
+      </div>
+      <div class="f">
+        <label>Piattaforma</label>
+        <select name="piattaforma" onchange="this.form.submit()">
+          <option value="">Tutte le piattaforme</option>
+          {% for p in platforms %}
+          <option value="{{ p }}" {% if p == piattaforma %}selected{% endif %}>{{ p }}</option>
+          {% endfor %}
+        </select>
+      </div>
+      <div class="f">
+        <label>Stato</label>
+        <select name="stato" onchange="this.form.submit()">
+          <option value="">Tutti gli stati</option>
+          <option value="in_attesa" {% if stato == 'in_attesa' %}selected{% endif %}>In attesa</option>
+          <option value="approvato" {% if stato == 'approvato' %}selected{% endif %}>Approvate</option>
+          <option value="rifiutato" {% if stato == 'rifiutato' %}selected{% endif %}>Rifiutate</option>
+        </select>
+      </div>
+      {% if categoria or piattaforma or stato %}
+      <a href="/" class="btn btn-ghost" style="align-self:flex-end">✕ Reset</a>
+      {% endif %}
+    </div>
+  </form>
+
+  <!-- Job list -->
+  {% if jobs %}
+  <div class="job-list">
+    {% for job in jobs %}
+    <div class="job-card status-{{ job.status }}" id="card-{{ loop.index }}">
+      <div>
+        <a class="job-title" href="/job/{{ job.id | urlencode }}">{{ job.titolo or 'Titolo non disponibile' }}</a>
+        <div class="job-meta">
+          {% if job.azienda %}
+          <span class="meta-item">🏢 {{ job.azienda }}</span>
+          {% endif %}
+          {% if job.luogo %}
+          <span class="meta-item">📍 {{ job.luogo }}</span>
+          {% endif %}
+          {% if job.is_remote or job.modalita_lavoro == 'remoto' %}
+          <span class="badge badge-green">🌐 Remoto</span>
+          {% elif job.modalita_lavoro == 'ibrido' %}
+          <span class="badge badge-yellow">⚡ Ibrido</span>
+          {% endif %}
+          {% if job.contratto %}
+          <span class="meta-item">📄 {{ job.contratto }}</span>
+          {% endif %}
+          <span class="badge badge-gray">{{ job.platform }}</span>
+          {% if job.category %}
+          <span class="badge badge-blue">
+            {% if job.category == 'docente_formatore' %}Formatore
+            {% elif job.category == 'social_media' %}Social Media
+            {% elif job.category == 'web_ecommerce' %}Web/Ecom
+            {% else %}{{ job.category }}{% endif %}
+          </span>
+          {% endif %}
+        </div>
+        {% if job.descrizione %}
+        <p class="text-sm text-muted mt-1" style="line-height:1.5;max-height:3em;overflow:hidden">
+          {{ job.descrizione[:180] }}{% if job.descrizione|length > 180 %}…{% endif %}
+        </p>
+        {% endif %}
+      </div>
+
+      <div class="job-actions">
+        <div class="status-badge-{{ loop.index }}">
+          {% if job.status == 'approvato' %}
+          <span class="badge badge-green">✓ Approvata</span>
+          {% elif job.status == 'rifiutato' %}
+          <span class="badge badge-red">✕ Rifiutata</span>
+          {% else %}
+          <span class="badge badge-gray">⏳ In attesa</span>
+          {% endif %}
+        </div>
+        <div class="quick-btns">
+          <button class="icon-btn approve" title="Approva"
+            onclick="quickValidate('{{ job.id }}', 'approvato', {{ loop.index }})">✓</button>
+          <button class="icon-btn reject" title="Rifiuta"
+            onclick="quickValidate('{{ job.id }}', 'rifiutato', {{ loop.index }})">✕</button>
+          <a class="icon-btn" href="/job/{{ job.id | urlencode }}" title="Dettagli e messaggio">✉</a>
+        </div>
+        {% if job.url %}
+        <a href="{{ job.url }}" target="_blank" rel="noopener"
+           class="text-xs text-muted" style="text-decoration:none">↗ Apri annuncio</a>
+        {% endif %}
+      </div>
+    </div>
+    {% endfor %}
+  </div>
+
+  {% else %}
+  <div class="empty">
+    <h2>Nessuna offerta trovata</h2>
+    <p>Lancia il job search agent per popolare i risultati:</p>
+    <pre style="margin-top:.75rem;background:var(--surface);padding:.75rem 1rem;border-radius:8px;text-align:left;display:inline-block;color:var(--accent)">python job_search_agent.py</pre>
+  </div>
+  {% endif %}
+
+</div>
+
+<script>
+  async function quickValidate(jobId, status, idx) {
+    const ok = await setStatus(jobId, status, '', '');
+    if (ok) {
+      const badge = document.querySelector(`.status-badge-${idx}`);
+      const card  = document.getElementById(`card-${idx}`);
+      if (status === 'approvato') {
+        badge.innerHTML = '<span class="badge badge-green">✓ Approvata</span>';
+        card.className  = card.className.replace(/status-\S+/, 'status-approvato');
+      } else {
+        badge.innerHTML = '<span class="badge badge-red">✕ Rifiutata</span>';
+        card.className  = card.className.replace(/status-\S+/, 'status-rifiutato');
+      }
+      toast(status === 'approvato' ? '✓ Offerta approvata' : '✕ Offerta rifiutata');
+    } else {
+      toast('Errore nel salvataggio', false);
+    }
+  }
+</script>
+{% endblock %}

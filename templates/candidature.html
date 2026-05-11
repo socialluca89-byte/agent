@@ -1,0 +1,124 @@
+{% extends "base.html" %}
+{% block title %}Le mie candidature — Job Agent{% endblock %}
+
+{% block head %}
+<style>
+  .cand-grid { display: flex; flex-direction: column; gap: 1rem; }
+
+  .cand-card {
+    background: var(--surface);
+    border: 1px solid var(--green);
+    border-radius: var(--radius);
+    padding: 1.25rem;
+    display: grid;
+    grid-template-columns: 1fr auto;
+    gap: 1rem;
+  }
+
+  .cand-title { font-weight: 700; font-size: 1rem; }
+  .cand-meta { display: flex; flex-wrap: wrap; gap: .4rem; margin-top: .35rem; align-items: center; }
+  .meta-item { font-size: .8rem; color: var(--text-muted); }
+
+  .msg-preview {
+    background: var(--surface2);
+    border-radius: 8px;
+    padding: .75rem 1rem;
+    font-size: .8rem;
+    color: var(--text-muted);
+    line-height: 1.5;
+    margin-top: .75rem;
+    max-height: 80px;
+    overflow: hidden;
+    position: relative;
+  }
+  .msg-preview::after {
+    content: '';
+    position: absolute;
+    bottom: 0; left: 0; right: 0;
+    height: 28px;
+    background: linear-gradient(transparent, var(--surface2));
+  }
+
+  .cand-actions { display: flex; flex-direction: column; gap: .5rem; align-items: flex-end; justify-content: flex-start; }
+
+  .empty { text-align: center; padding: 4rem 1rem; color: var(--text-muted); }
+  .empty h2 { font-size: 1.5rem; margin-bottom: .5rem; }
+
+  .page-header { margin-bottom: 1.5rem; }
+  .page-header h1 { font-size: 1.5rem; font-weight: 700; }
+  .page-header p  { color: var(--text-muted); margin-top: .25rem; font-size: .9rem; }
+</style>
+{% endblock %}
+
+{% block content %}
+<div class="container">
+
+  <div class="page-header">
+    <h1>✉ Candidature approvate</h1>
+    <p>{{ jobs|length }} offerte pronte per la candidatura</p>
+  </div>
+
+  {% if jobs %}
+  <div class="cand-grid">
+    {% for job in jobs %}
+    <div class="cand-card">
+      <div>
+        <div class="cand-title">{{ job.titolo or 'Titolo non disponibile' }}</div>
+        <div class="cand-meta">
+          {% if job.azienda %}<span class="meta-item">🏢 {{ job.azienda }}</span>{% endif %}
+          {% if job.luogo   %}<span class="meta-item">📍 {{ job.luogo }}</span>{% endif %}
+          <span class="badge badge-gray">{{ job.platform }}</span>
+          <span class="badge badge-green">✓ Approvata</span>
+        </div>
+        {% if job.note %}
+        <p class="text-sm text-muted mt-1">📝 {{ job.note }}</p>
+        {% endif %}
+        {% if job.messaggio %}
+        <div class="msg-preview">{{ job.messaggio }}</div>
+        {% endif %}
+      </div>
+
+      <div class="cand-actions">
+        <a href="/job/{{ job.id | urlencode }}" class="btn btn-ghost text-sm">✏ Modifica</a>
+        {% if job.url %}
+        <a href="{{ job.url }}" target="_blank" rel="noopener" class="btn btn-primary text-sm">
+          🚀 Candidati
+        </a>
+        {% endif %}
+        <button class="btn btn-ghost text-sm" onclick="copiaMsg({{ job.messaggio | tojson }})">
+          📋 Copia msg
+        </button>
+      </div>
+    </div>
+    {% endfor %}
+  </div>
+
+  <div class="mt-3" style="text-align:right">
+    <button class="btn btn-ghost" onclick="esportaTutti()">⬇ Esporta tutto (JSON)</button>
+  </div>
+
+  {% else %}
+  <div class="empty">
+    <h2>Nessuna candidatura ancora</h2>
+    <p>Approva le offerte dalla lista principale per vederle qui.</p>
+    <a href="/" class="btn btn-primary" style="margin-top:1rem">← Vai alle offerte</a>
+  </div>
+  {% endif %}
+
+</div>
+
+<script>
+  function copiaMsg(msg) {
+    navigator.clipboard.writeText(msg).then(() => toast('📋 Messaggio copiato!'));
+  }
+
+  function esportaTutti() {
+    const data = {{ jobs | tojson }};
+    const blob = new Blob([JSON.stringify(data, null, 2)], {type: 'application/json'});
+    const a = document.createElement('a');
+    a.href = URL.createObjectURL(blob);
+    a.download = 'candidature.json';
+    a.click();
+  }
+</script>
+{% endblock %}
